@@ -2,6 +2,7 @@ using Test
 using IncompleteLU
 using LinearAlgebra
 using SparseArrays
+using SparseMatrixInverse
 
 @testset "Inverse of sparse matrices" begin
     
