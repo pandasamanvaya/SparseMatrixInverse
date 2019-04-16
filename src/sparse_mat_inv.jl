@@ -1,6 +1,11 @@
-using LinearAlgebra
 
-function gen_diag_mat(U)
+export sparse_mat_inv
+using SparseArrays
+using LinearAlgebra
+using IncompleteLU
+
+#Breaking up U into DU
+function gen_diag_mat(U::AbstractMatrix)
 
 	l = length(U[:,1])
 	D = zeros(l,l)
@@ -15,7 +20,8 @@ function gen_diag_mat(U)
 	return D, U 
 end
 
-function diag_inv(D)
+#Computing inverse of diagonal matrix
+function diag_inv(D::AbstractMatrix)
 
 	for i = 1:length(D[:,1])
 		D[i,i] = 1/D[i,i]
@@ -24,7 +30,7 @@ function diag_inv(D)
 	return D
 end
 
-function sum_prod(A, B, i, j)
+function sum_prod(A::AbstractMatrix, B::AbstractMatrix, i, j)
 	sum = 0
 	if i <= j
 		for k = i+1:length(A[:,1])
@@ -39,13 +45,44 @@ function sum_prod(A, B, i, j)
 	return sum
 end
 
-function sparse_mat_inv(A)
-	F = lu(A)
-	L = F.L
-	D, U = gen_diag_mat(F.U)
+#Checking sparsity of matrix
+function check_sparse(A::AbstractMatrix)
+
+	zero_cnt = 0
+	for i = 1 : length(A[1,:])
+		for j = 1 : length(A[:,1])
+			if A[i,j] == 0
+				zero_cnt += 1
+			end
+		end
+	end
+
+	if zero_cnt/(length(A[1,:]) * length(A[:,1])) > 0.5
+		return true
+	else
+		return false 
+	end
+
+end
+
+#Main Function
+function sparse_mat_inv(A::AbstractMatrix)
+	
+	if issparse(A)
+		A = Array(A)
+	end
+
+	if !check_sparse(A)
+		throw(ArgumentError("Matrix is not sparse"))
+	end
+	
+	A = sparse(A)
+	F = ilu(A, τ = 1e-3)
+	L = F.L + I
+	D, U = gen_diag_mat(F.U')
 	D_inv = diag_inv(D)
 	Z = Matrix{Float64}(I, length(A[:,1]), length(A[:,1]))
-	#Z = zeros(length(A[:,1]), length(A[1,:]))
+	
 	for i = length(A[:,1]):-1:1
 
 		#Diagonal
@@ -70,22 +107,3 @@ function sparse_mat_inv(A)
 
 end
 
-#Test case
-# A = [6   96  102   124   -83;
-#   -9  -22   87    -6   103;
-#  -29   42   39   -34  -112;
-#    5   90   67   -60   118;
-#  113  -48   21  -104   -38
-# ]
-A = [4 0 0 0; 0 1 1 0; 0 0 2 0; 3 0 0 1]
-# A = [ 10.4568  72.7976  90.1101  24.1153  58.516   79.4937; 
-#  45.2467  50.2046  89.9907  53.7022  49.2011  43.6254; 
-#  33.7813  93.4247  17.7946  86.8576  20.8534  21.6538; 
-#  29.0463  52.1989  74.867   19.2154  93.2037  41.8678; 
-#  69.5845  25.3171  99.5596  81.9548  32.8988  10.4182; 
-#  49.0247  40.3364  43.2576  13.1846  52.34     4.44927
-#  ]
-Z = sparse_mat_inv(A)
-for i in 1:length(Z[:,1])
-	println(Z[i,:])
-end
