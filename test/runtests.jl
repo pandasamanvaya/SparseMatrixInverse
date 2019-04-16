@@ -7,7 +7,7 @@ using SparseMatrixInverse
 @testset "Inverse of sparse matrices" begin
     
     #Base case
-	A = sprand(2,2, 0.2) + 2I
+	A = sprand(2, 2, 0.1) + 2I
     @test abs(norm(sparse_mat_inv(A)) - norm(inv(Array(A)))) <= 1e-3
 	
     A = sprand(10, 10, 0.2) + 10I
